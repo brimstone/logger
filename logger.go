@@ -46,8 +46,7 @@ func New(o ...*Options) *Logger {
 }
 
 func (l *Logger) Profile(then time.Time) {
-	l.prepFields(1).Debug("Profile",
-		l.Field("duration", time.Now().Sub(then)))
+	l.prepFields(1, l.Field("duration", time.Now().Sub(then))).Debug("Profile")
 }
 
 type FieldPair struct {
