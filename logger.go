@@ -13,32 +13,53 @@ type Fields logrus.Fields
 
 type Logger struct {
 	logrus *logrus.Logger
-	method string
+
+	counter       map[string]*int64
+	file          bool
+	gauge         map[string]interface{}
+	method        string
+	metricPrinter bool
+	metricsDelay  time.Duration
 }
 
 type Options struct {
 	Method string
+	File   bool
+	Delay  time.Duration
 }
 
-func New(o *Options) *Logger {
+func New(o ...*Options) *Logger {
 	l := &Logger{
 		logrus: logrus.New(),
 	}
-	if o != nil {
-		if o.Method != "" {
-			l.method = o.Method
+	for _, option := range o {
+		if option.Method != "" {
+			l.method = option.Method
+		}
+		l.file = option.File
+		l.metricsDelay = time.Second * 60
+		if option.Delay != 0 {
+			l.metricsDelay = option.Delay
 		}
 	}
 	l.logrus.SetLevel(logrus.DebugLevel)
 	l.logrus.Out = os.Stderr
 	//l.logrus.SetFormatter(&logrus.TextFormatter{})
+	l.gauge = make(map[string]interface{})
+	l.counter = make(map[string]*int64)
 	return l
 }
 
-func Method(method string) *Logger {
-	return New(&Options{
-		Method: method,
-	})
+func Method(method string, o ...*Options) *Logger {
+	var options []*Options
+	options = append(options,
+		&Options{
+			Method: method,
+			File:   true,
+		})
+	options = append(options, o...)
+
+	return New(options...)
 }
 
 func (l *Logger) Profile(then time.Time) {
@@ -64,12 +85,16 @@ func (l *Logger) Field(key string, value interface{}) FieldPair {
 
 func (l *Logger) Debug(msg string, fps ...FieldPair) {
 	e := logrus.NewEntry(l.logrus)
-	e = e.WithField("method", l.method)
-	_, filename, linenumber, ok := runtime.Caller(1)
-	if !ok {
-		panic("How did you get here?")
+	if l.method != "" {
+		e = e.WithField("method", l.method)
 	}
-	e = e.WithField("file", filename+":"+strconv.FormatInt(int64(linenumber), 10))
+	if l.file {
+		_, filename, linenumber, ok := runtime.Caller(1)
+		if !ok {
+			panic("How did you get here?")
+		}
+		e = e.WithField("file", filename+":"+strconv.FormatInt(int64(linenumber), 10))
+	}
 	for _, fp := range fps {
 		e = e.WithField(fp.key, fp.value)
 	}
