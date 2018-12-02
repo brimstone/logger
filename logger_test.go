@@ -45,7 +45,7 @@ func CompareTypes(a interface{}, b interface{}) bool {
 		bSig, ok := bMethods[aName]
 		// If the method in A doesn't exist in B, it's a problem
 		if !ok {
-			fmt.Printf("Method %s%s is missing\n", aName, aSig)
+			fmt.Printf("Method %s(%s) is missing\n", aName, strings.Join(aSig, ", "))
 			success = false
 			continue
 		}

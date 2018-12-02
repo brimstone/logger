@@ -19,7 +19,6 @@ type Logger struct {
 	gauge         map[string]interface{}
 	metricPrinter bool
 	metricsDelay  time.Duration
-	caller        int
 }
 
 type Options struct {
@@ -47,21 +46,13 @@ func New(o ...*Options) *Logger {
 }
 
 func (l *Logger) Profile(then time.Time) {
-	l.caller++
-	l.Debug("Profile",
+	l.prepFields(1).Debug("Profile",
 		l.Field("duration", time.Now().Sub(then)))
-	l.caller--
 }
 
 type FieldPair struct {
 	key   string
 	value interface{}
-}
-
-func (l *Logger) Println(msg ...interface{}) {
-	l.caller++
-	l.prepFields().Println(msg...)
-	l.caller--
 }
 
 func (l *Logger) Field(key string, value interface{}) FieldPair {
@@ -71,9 +62,9 @@ func (l *Logger) Field(key string, value interface{}) FieldPair {
 	}
 }
 
-func (l *Logger) prepFields(fps ...FieldPair) *logrus.Entry {
+func (l *Logger) prepFields(caller int, fps ...FieldPair) *logrus.Entry {
 	e := logrus.NewEntry(l.logrus)
-	pc, filename, linenumber, ok := runtime.Caller(l.caller + 2)
+	pc, filename, linenumber, ok := runtime.Caller(caller + 2)
 	if !ok {
 		panic("How did you get here?")
 	}
@@ -88,9 +79,9 @@ func (l *Logger) prepFields(fps ...FieldPair) *logrus.Entry {
 }
 
 func (l *Logger) Debug(msg string, fps ...FieldPair) {
-	l.prepFields(fps...).Debug(msg)
+	l.prepFields(0, fps...).Debug(msg)
 }
 
 func (l *Logger) Info(msg string, fps ...FieldPair) {
-	l.prepFields(fps...).Info(msg)
+	l.prepFields(0, fps...).Info(msg)
 }
