@@ -17,15 +17,14 @@ type Logger struct {
 	counter       map[string]*int64
 	file          bool
 	gauge         map[string]interface{}
-	method        string
 	metricPrinter bool
 	metricsDelay  time.Duration
+	caller        int
 }
 
 type Options struct {
-	Method string
-	File   bool
-	Delay  time.Duration
+	File  bool
+	Delay time.Duration
 }
 
 func New(o ...*Options) *Logger {
@@ -33,9 +32,6 @@ func New(o ...*Options) *Logger {
 		logrus: logrus.New(),
 	}
 	for _, option := range o {
-		if option.Method != "" {
-			l.method = option.Method
-		}
 		l.file = option.File
 		l.metricsDelay = time.Second * 60
 		if option.Delay != 0 {
@@ -50,21 +46,11 @@ func New(o ...*Options) *Logger {
 	return l
 }
 
-func Method(method string, o ...*Options) *Logger {
-	var options []*Options
-	options = append(options,
-		&Options{
-			Method: method,
-			File:   true,
-		})
-	options = append(options, o...)
-
-	return New(options...)
-}
-
 func (l *Logger) Profile(then time.Time) {
+	l.caller++
 	l.Debug("Profile",
 		l.Field("duration", time.Now().Sub(then)))
+	l.caller--
 }
 
 type FieldPair struct {
@@ -72,8 +58,10 @@ type FieldPair struct {
 	value interface{}
 }
 
-func (l *Logger) Println(msg string) {
-	l.Debug(msg)
+func (l *Logger) Println(msg ...interface{}) {
+	l.caller++
+	l.prepFields().Println(msg...)
+	l.caller--
 }
 
 func (l *Logger) Field(key string, value interface{}) FieldPair {
@@ -83,36 +71,26 @@ func (l *Logger) Field(key string, value interface{}) FieldPair {
 	}
 }
 
-func (l *Logger) Debug(msg string, fps ...FieldPair) {
+func (l *Logger) prepFields(fps ...FieldPair) *logrus.Entry {
 	e := logrus.NewEntry(l.logrus)
-	if l.method != "" {
-		e = e.WithField("method", l.method)
+	pc, filename, linenumber, ok := runtime.Caller(l.caller + 2)
+	if !ok {
+		panic("How did you get here?")
 	}
 	if l.file {
-		_, filename, linenumber, ok := runtime.Caller(1)
-		if !ok {
-			panic("How did you get here?")
-		}
 		e = e.WithField("file", filename+":"+strconv.FormatInt(int64(linenumber), 10))
 	}
+	e = e.WithField("method", runtime.FuncForPC(pc).Name())
 	for _, fp := range fps {
 		e = e.WithField(fp.key, fp.value)
 	}
-	e.Debug(msg)
+	return e
+}
+
+func (l *Logger) Debug(msg string, fps ...FieldPair) {
+	l.prepFields(fps...).Debug(msg)
 }
 
 func (l *Logger) Info(msg string, fps ...FieldPair) {
-	e := logrus.NewEntry(l.logrus)
-	/*
-		e = e.WithField("method", l.method)
-		_, filename, linenumber, ok := runtime.Caller(1)
-		if !ok {
-			panic("How did you get here?")
-		}
-		e = e.WithField("file", filename+":"+strconv.FormatInt(int64(linenumber), 10))
-	*/
-	for _, fp := range fps {
-		e = e.WithField(fp.key, fp.value)
-	}
-	e.Info(msg)
+	l.prepFields(fps...).Info(msg)
 }

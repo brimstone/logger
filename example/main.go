@@ -1,8 +1,12 @@
 package main
 
 import (
+	"time"
+
 	"github.com/brimstone/logger"
 )
+
+var log = logger.New()
 
 func main() {
 	/*
@@ -11,7 +15,7 @@ func main() {
 			Delay:  time.Second * 1,
 		})
 	*/
-	log := logger.Method("main")
+	defer log.Profile(time.Now())
 	log.Println("Starting")
 
 	for count := 0; count < 100000000; count++ {
