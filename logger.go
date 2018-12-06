@@ -37,7 +37,15 @@ func New(o ...*Options) *Logger {
 			l.metricsDelay = option.Delay
 		}
 	}
-	l.logrus.SetLevel(logrus.DebugLevel)
+	if os.Getenv("LOG_LEVEL") == "warn" {
+		l.logrus.SetLevel(logrus.WarnLevel)
+	} else if os.Getenv("LOG_LEVEL") == "info" {
+		l.logrus.SetLevel(logrus.InfoLevel)
+	} else if os.Getenv("LOG_LEVEL") == "error" {
+		l.logrus.SetLevel(logrus.ErrorLevel)
+	} else {
+		l.logrus.SetLevel(logrus.DebugLevel)
+	}
 	l.logrus.Out = os.Stderr
 	//l.logrus.SetFormatter(&logrus.TextFormatter{})
 	l.gauge = make(map[string]interface{})
