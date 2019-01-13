@@ -4,9 +4,11 @@ import (
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type Fields logrus.Fields
@@ -37,17 +39,22 @@ func New(o ...*Options) *Logger {
 			l.metricsDelay = option.Delay
 		}
 	}
-	if os.Getenv("LOG_LEVEL") == "warn" {
+	logLevel := strings.ToLower(os.Getenv("LOG_LEVEL"))
+	if logLevel == "warn" {
 		l.logrus.SetLevel(logrus.WarnLevel)
-	} else if os.Getenv("LOG_LEVEL") == "info" {
+	} else if logLevel == "info" {
 		l.logrus.SetLevel(logrus.InfoLevel)
-	} else if os.Getenv("LOG_LEVEL") == "error" {
+	} else if logLevel == "error" {
 		l.logrus.SetLevel(logrus.ErrorLevel)
 	} else {
 		l.logrus.SetLevel(logrus.DebugLevel)
 	}
 	l.logrus.Out = os.Stderr
-	//l.logrus.SetFormatter(&logrus.TextFormatter{})
+	if terminal.IsTerminal(int(os.Stdin.Fd())) {
+		l.logrus.SetFormatter(&logrus.TextFormatter{})
+	} else {
+		l.logrus.SetFormatter(&logrus.JSONFormatter{})
+	}
 	l.gauge = make(map[string]interface{})
 	l.counter = make(map[string]*int64)
 	return l
@@ -91,4 +98,12 @@ func (l *Logger) Debug(msg string, fps ...FieldPair) {
 
 func (l *Logger) Info(msg string, fps ...FieldPair) {
 	l.prepFields(0, fps...).Info(msg)
+}
+
+func (l *Logger) Error(msg string, fps ...FieldPair) {
+	l.prepFields(0, fps...).Error(msg)
+}
+
+func (l *Logger) Warn(msg string, fps ...FieldPair) {
+	l.prepFields(0, fps...).Warn(msg)
 }
