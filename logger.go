@@ -30,11 +30,11 @@ type Options struct {
 
 func New(o ...*Options) *Logger {
 	l := &Logger{
-		logrus: logrus.New(),
+		logrus:       logrus.New(),
+		metricsDelay: time.Second * 60,
 	}
 	for _, option := range o {
 		l.file = option.File
-		l.metricsDelay = time.Second * 60
 		if option.Delay != 0 {
 			l.metricsDelay = option.Delay
 		}
