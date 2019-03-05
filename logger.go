@@ -16,11 +16,17 @@ type Fields logrus.Fields
 type Logger struct {
 	logrus *logrus.Logger
 
-	counter       map[string]*int64
+	counters      map[string]*counter
 	file          bool
 	gauge         map[string]interface{}
 	metricPrinter bool
 	metricsDelay  time.Duration
+}
+
+type counter struct {
+	value        *int64
+	lastValue    int64
+	lastObserved time.Time
 }
 
 type Options struct {
@@ -56,7 +62,7 @@ func New(o ...*Options) *Logger {
 		l.logrus.SetFormatter(&logrus.JSONFormatter{})
 	}
 	l.gauge = make(map[string]interface{})
-	l.counter = make(map[string]*int64)
+	l.counters = make(map[string]*counter)
 	return l
 }
 
