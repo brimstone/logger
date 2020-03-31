@@ -1,6 +1,9 @@
 package logger
 
 import (
+	"bufio"
+	"fmt"
+	"net"
 	"net/http"
 )
 
@@ -23,6 +26,16 @@ func (f *fakeWriter) Header() http.Header {
 func (f *fakeWriter) WriteHeader(status int) {
 	f.status = status
 	f.writer.WriteHeader(status)
+}
+
+// Hijack implements http.Hijacker. If the underlying ResponseWriter is a
+// Hijacker, its Hijack method is returned. Otherwise an error is returned.
+// stolen from https://github.com/nytimes/gziphandler
+func (f *fakeWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if hj, ok := f.writer.(http.Hijacker); ok {
+		return hj.Hijack()
+	}
+	return nil, nil, fmt.Errorf("http.Hijacker interface is not supported")
 }
 
 func HTTP(h http.Handler) http.Handler {
