@@ -45,6 +45,7 @@ func HTTP(h http.Handler) http.Handler {
 			writer: w,
 		}
 
+		host := r.Host
 		h.ServeHTTP(wrapped, r)
 
 		if wrapped.status == 0 {
@@ -63,7 +64,7 @@ func HTTP(h http.Handler) http.Handler {
 			log.Field("proto", r.Proto),
 			log.Field("status", wrapped.status),
 			log.Field("uri", r.RequestURI),
-			log.Field("host", r.Host),
+			log.Field("host", host),
 		)
 	})
 }
