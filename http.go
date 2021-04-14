@@ -63,6 +63,7 @@ func HTTP(h http.Handler) http.Handler {
 			log.Field("proto", r.Proto),
 			log.Field("status", wrapped.status),
 			log.Field("uri", r.RequestURI),
+			log.Field("host", r.Host),
 		)
 	})
 }
