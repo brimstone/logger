@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"io"
 	"os"
 	"runtime"
 	"strconv"
@@ -104,6 +105,11 @@ func (l *Logger) Debug(msg string, fps ...FieldPair) {
 
 func (l *Logger) Info(msg string, fps ...FieldPair) {
 	l.prepFields(0, fps...).Info(msg)
+}
+func (l *Logger) Finfo(w io.Writer, msg string, fps ...FieldPair) {
+	l.logrus.Out = w
+	l.prepFields(0, fps...).Info(msg)
+	l.logrus.Out = os.Stderr
 }
 
 func (l *Logger) Error(msg string, fps ...FieldPair) {
